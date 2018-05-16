@@ -34,7 +34,7 @@ $objChannel = $objConnection->channel();
 /**
  * 获取一个队列，如果不存在则新建
  * name:队列名
- * passive:false
+ * passive:是否需要检查已存在同名的队列
  * durable:是否持久化的，服务器重启队列不消失
  * exclusive:是否专有的，允许其他信道访问此队列
  * auto_delete：是否自动删除，当被消费者连接过，且最后所有消费者都断开连接时
@@ -51,7 +51,7 @@ $strQueue = $arrReturn[0];
  * 获取一个交换器，如果不存在则新建
  * name:交换器名
  * type:交换器类型(fanout,direct,topic,headers)
- * passive:false
+ * passive:是否需要检查已存在同名的交换器
  * durable:是否持久化的，服务器重启队列不消失
  * auto_delete：是否自动删除，当被队列或交换器过，且最后所有的队列或交换器都解绑了
  */
@@ -63,6 +63,11 @@ $objChannel->queue_bind($strQueue, $strExchange);
 //定义回调函数
 function callback_func($objMessage) {
     echo " [x] Received ", $objMessage->body, "\n";
+
+    //接收到关键字[quit]时，取消用户连接
+    if ($objMessage->body === 'quit') {
+        $objMessage->delivery_info['channel']->basic_cancel($objMessage->delivery_info['consumer_tag']);
+    }
 }
 
 //php中止时执行的函数

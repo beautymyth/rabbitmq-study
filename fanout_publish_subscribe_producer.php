@@ -29,7 +29,7 @@ $objChannel = $objConnection->channel();
  * 获取一个交换器，如果不存在则新建
  * name:交换器名
  * type:交换器类型(fanout,direct,topic,headers)
- * passive:false
+ * passive:是否需要检查已存在同名的交换器
  * durable:是否持久化的，服务器重启队列不消失
  * auto_delete：是否自动删除，当被队列或交换器过，且最后所有的队列或交换器都解绑了
  */
