@@ -42,7 +42,7 @@ $objChannel = $objConnection->channel();
 /**
  * 1.自动生成
  * 2.专有队列
- * 3.持久化
+ * 3.不持久化
  * 4.自动删除
  */
 $arrReturn = $objChannel->queue_declare('', false, false, true, true);
