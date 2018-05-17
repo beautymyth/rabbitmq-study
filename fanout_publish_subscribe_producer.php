@@ -36,7 +36,12 @@ $objChannel = $objConnection->channel();
 $objChannel->exchange_declare($strExchange, 'fanout', false, true, false);
 
 //创建消息
-$objMessage = new AMQPMessage('hello world!' . time());
+//delivery_mode：设置消息持久化
+$strMessage = json_encode([
+    'msg' => 'hello world',
+    'time' => time()
+        ]);
+$objMessage = new AMQPMessage($strMessage, ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]);
 //将消息发送到指定的交换器
 $objChannel->basic_publish($objMessage, $strExchange);
 
