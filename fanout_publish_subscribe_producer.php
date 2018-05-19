@@ -43,7 +43,11 @@ $strMessage = json_encode([
         ]);
 $objMessage = new AMQPMessage($strMessage, ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]);
 //将消息发送到指定的交换器
-$objChannel->basic_publish($objMessage, $strExchange);
+//while (1) 
+{
+    $objChannel->basic_publish($objMessage, $strExchange);
+    //usleep(1000 * 10);
+}
 
 //关闭信道与断开连接
 $objChannel->close();

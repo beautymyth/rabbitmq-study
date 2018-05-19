@@ -57,7 +57,7 @@ $strQueue = $arrReturn[0];
  */
 $objChannel->exchange_declare($strExchange, 'fanout', false, true, false);
 
-//将交换器与队列进行绑定，之后消息可以根据交换器路由到不同的队列
+//将交换器与队列进行绑定
 $objChannel->queue_bind($strQueue, $strExchange);
 
 //定义回调函数

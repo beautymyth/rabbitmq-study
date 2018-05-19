@@ -1,5 +1,10 @@
 <?php
 
+/*
+ * 说明：
+ * 1.不同队列可以绑定同个routekey
+ */
+
 //用于自动加载类中的Lib目录定位
 define('LIB_PATH', __DIR__ . '/Lib/');
 
@@ -11,13 +16,13 @@ use Lib\PhpAmqpLib\Connection\AMQPStreamConnection;
 use Lib\PhpAmqpLib\Message\AMQPMessage;
 
 //交换器名
-$strExchange = 'exchange_direct_simple';
+$strExchange = 'exchange_direct_routing';
 
 //队列名
-$strQueue = 'queue_direct_simple';
+$strQueue = 'queue_direct_routing_info_1';
 
 //消费者标识
-$strConsumerTag = 'consumer_direct_simple';
+$strConsumerTag = 'consumer_direct_routing';
 
 /**
  * 连接rabbit服务器
@@ -46,17 +51,23 @@ $objChannel->queue_declare($strQueue, false, true, false, false);
  * name:交换器名
  * type:交换器类型(fanout,direct,topic,headers)
  * passive:是否需要检查已存在同名的交换器
- * durable:是否持久化的，服务器重启交换器不消失
- * auto_delete：是否自动删除，当被队列或交换器绑定过，且最后所有的队列或交换器都解绑了
+ * durable:是否持久化的，服务器重启队列不消失
+ * auto_delete：是否自动删除，当被队列或交换器过，且最后所有的队列或交换器都解绑了
  */
 $objChannel->exchange_declare($strExchange, 'direct', false, true, false);
 
 //将交换器与队列进行绑定
-$objChannel->queue_bind($strQueue, $strExchange);
+//同时绑定2个routekey
+$objChannel->queue_bind($strQueue, $strExchange, 'info');
 
 //定义回调函数
 function callback_func($objMessage) {
     echo " [x] Received ", $objMessage->body, "\n";
+
+    //接收到关键字[quit]时，取消用户连接
+    if ($objMessage->body === 'quit') {
+        $objMessage->delivery_info['channel']->basic_cancel($objMessage->delivery_info['consumer_tag']);
+    }
 }
 
 //php中止时执行的函数

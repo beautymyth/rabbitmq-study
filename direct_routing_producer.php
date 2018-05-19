@@ -11,10 +11,7 @@ use Lib\PhpAmqpLib\Connection\AMQPStreamConnection;
 use Lib\PhpAmqpLib\Message\AMQPMessage;
 
 //交换器名
-$strExchange = 'exchange_direct_simple';
-
-//队列名
-$strQueue = 'queue_direct_simple';
+$strExchange = 'exchange_direct_routing';
 
 /**
  * 连接rabbit服务器
@@ -29,16 +26,6 @@ $objConnection = new AMQPStreamConnection('127.0.0.1', 5672, 'admin', 'admin');
 $objChannel = $objConnection->channel();
 
 /**
- * 获取一个队列，如果不存在则新建
- * name:队列名
- * passive:是否需要检查已存在同名的队列
- * durable:是否持久化的，服务器重启队列不消失
- * exclusive:是否专有的，允许其他信道访问此队列
- * auto_delete：是否自动删除，当被消费者连接过，且最后所有消费者都断开连接时
- */
-$objChannel->queue_declare($strQueue, false, true, false, false);
-
-/**
  * 获取一个交换器，如果不存在则新建
  * name:交换器名
  * type:交换器类型(fanout,direct,topic,headers)
@@ -48,13 +35,26 @@ $objChannel->queue_declare($strQueue, false, true, false, false);
  */
 $objChannel->exchange_declare($strExchange, 'direct', false, true, false);
 
-//将交换器与队列进行绑定
-$objChannel->queue_bind($strQueue, $strExchange);
-
 //创建消息
-$objMessage = new AMQPMessage('hello world!');
+//delivery_mode：设置消息持久化
+$strMessage = json_encode([
+    'msg' => 'hello world',
+    'time' => time()
+        ]);
 //将消息发送到指定的交换器
-$objChannel->basic_publish($objMessage, $strExchange);
+$arrRouteKyes = ['info', 'warning', 'error'];
+//随机发送不同的routekey消息
+try {
+    while (1) {
+        $strRouteKey = $arrRouteKyes[rand(0, 2)];
+        $objMessage = new AMQPMessage($strMessage . ':' . $strRouteKey, ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]);
+        $objChannel->basic_publish($objMessage, $strExchange, $strRouteKey);
+        echo $strRouteKey . PHP_EOL;
+        usleep(1000 * 100);
+    }
+} catch (Exception $e) {
+    echo $e->getMessage() . PHP_EOL;
+}
 
 //关闭信道与断开连接
 $objChannel->close();
