@@ -3,6 +3,7 @@
 namespace Lib\RabbitMQ;
 
 use Lib\PhpAmqpLib\Connection\AMQPStreamConnection;
+use Lib\PhpAmqpLib\Connection\AMQPSocketConnection;
 use Lib\PhpAmqpLib\Message\AMQPMessage;
 use Lib\PhpAmqpLib\Channel\AMQPChannel;
 use Lib\PhpAmqpLib\Wire;
@@ -36,6 +37,13 @@ class RabbitBase {
      * 信道对象
      */
     private $objChannel = null;
+
+    /**
+     * 获取子类类型
+     */
+    protected function getType() {
+        return '';
+    }
 
     /**
      * 获取连接对象
@@ -117,8 +125,11 @@ class RabbitBase {
             $strRandomKey = array_keys($arrRabbitServer)[$strRandomKey];
             $arrServer = $arrRabbitServer[$strRandomKey];
             try {
-                $this->objConnection = new AMQPStreamConnection($arrServer['host'], $arrServer['port'], $arrServer['user'], $arrServer['password'], '/', false, 'AMQPLAIN', null, 'en_US', $this->intConnectTimeOut, $this->intReadWriteTimeOut);
-                echo json_encode($arrServer) . PHP_EOL;
+                if ($this->getType() == 'producer') {
+                    $this->objConnection = new AMQPSocketConnection($arrServer['host'], $arrServer['port'], $arrServer['user'], $arrServer['password'], '/', false, 'AMQPLAIN', null, 'en_US', $this->intConnectTimeOut, $this->intReadWriteTimeOut);
+                } else {
+                    $this->objConnection = new AMQPStreamConnection($arrServer['host'], $arrServer['port'], $arrServer['user'], $arrServer['password'], '/', false, 'AMQPLAIN', null, 'en_US', $this->intConnectTimeOut, $this->intReadWriteTimeOut);
+                }
                 break;
             } catch (\Exception $e) {
                 echo $e->getMessage() . PHP_EOL;
