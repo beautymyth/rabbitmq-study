@@ -31,9 +31,17 @@ class RabbitProducerBase extends RabbitBase {
     private $intTryCount = 1;
 
     /**
+     * 获取子类类型
+     */
+    protected function getType() {
+        return 'producer';
+    }
+
+    /**
      * 构建客户端
      * @param array $arrInitParam 配置信息
      * <br><b>注意：如果在生产与消费端都配置交换器与队列，确保配置信息一致</b>
+     * <br>is_recreate：是否每次连接都需要创建交换器与队列，如果服务器已存在交换器与队列就不需要，（true,false），默认为false
      * <br>exchange_name：交换器名，必要
      * <br>exchange_type：交换器类别，(direct,topic,fanout)，必要
      * <br>is_need_ae：是否开启备用交换器，(true,false)，默认false
@@ -48,15 +56,18 @@ class RabbitProducerBase extends RabbitBase {
     protected function build($arrInitParam, &$strErrorMsg = '') {
         try {
             $this->arrInitParam = $arrInitParam;
-            //交换器
-            parent::declareExchange($arrInitParam['exchange_name'], $arrInitParam['exchange_type'], isset($arrInitParam['is_need_ae']) ? $arrInitParam['is_need_ae'] : false);
-            //队列
-            if (isset($arrInitParam['queue_list']) && count($arrInitParam['queue_list']) > 0) {
-                foreach ($arrInitParam['queue_list'] as $arrQueue) {
-                    if (!empty($arrQueue['queue_name'])) {
-                        parent::declareQueue($arrQueue['queue_name'], isset($arrQueue['is_need_dq']) ? $arrQueue['is_need_dq'] : true);
-                        //绑定
-                        parent::bindExchangeQueue($arrInitParam['exchange_name'], $arrQueue['queue_name'], isset($arrQueue['route_key']) ? $arrQueue['route_key'] : []);
+            $blnIsRecreate = isset($arrInitParam['is_recreate']) ? $arrInitParam['is_recreate'] : false;
+            if ($blnIsRecreate) {
+                //交换器
+                parent::declareExchange($arrInitParam['exchange_name'], $arrInitParam['exchange_type'], isset($arrInitParam['is_need_ae']) ? $arrInitParam['is_need_ae'] : false);
+                //队列
+                if (isset($arrInitParam['queue_list']) && count($arrInitParam['queue_list']) > 0) {
+                    foreach ($arrInitParam['queue_list'] as $arrQueue) {
+                        if (!empty($arrQueue['queue_name'])) {
+                            parent::declareQueue($arrQueue['queue_name'], isset($arrQueue['is_need_dq']) ? $arrQueue['is_need_dq'] : true);
+                            //绑定
+                            parent::bindExchangeQueue($arrInitParam['exchange_name'], $arrQueue['queue_name'], isset($arrQueue['route_key']) ? $arrQueue['route_key'] : []);
+                        }
                     }
                 }
             }
