@@ -15,6 +15,13 @@ class RabbitConsumerBase extends RabbitBase {
     private $arrInitParam = [];
 
     /**
+     * 获取子类类型
+     */
+    protected function getType() {
+        return 'consumer';
+    }
+
+    /**
      * 构建客户端
      * @param array $arrInitParam 配置信息
      * <br><b>注意：如果在生产与消费端都配置交换器与队列，确保配置信息一致</b>
