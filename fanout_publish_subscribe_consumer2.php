@@ -34,7 +34,7 @@ $objChannel = $objConnection->channel();
 /**
  * 获取一个队列，如果不存在则新建
  * name:队列名
- * passive:是否需要检查已存在同名的队列
+ * passive:是否只检测队列(交换器)是否存在，而不进行队列(交换器)声明参数的匹配检测
  * durable:是否持久化的，服务器重启队列不消失
  * exclusive:是否专有的，允许其他信道访问此队列
  * auto_delete：是否自动删除，当被消费者连接过，且最后所有消费者都断开连接时
@@ -51,7 +51,7 @@ $strQueue = $arrReturn[0];
  * 获取一个交换器，如果不存在则新建
  * name:交换器名
  * type:交换器类型(fanout,direct,topic,headers)
- * passive:是否需要检查已存在同名的交换器
+ * passive:是否只检测队列(交换器)是否存在，而不进行队列(交换器)声明参数的匹配检测
  * durable:是否持久化的，服务器重启队列不消失
  * auto_delete：是否自动删除，当被队列或交换器过，且最后所有的队列或交换器都解绑了
  */
