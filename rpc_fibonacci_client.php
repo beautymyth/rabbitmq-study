@@ -71,6 +71,9 @@ class FibonacciRpcClient {
             $this->response = $objRep->body;
             //确认请求，从队列删除消息
             $objRep->delivery_info['channel']->basic_ack($objRep->delivery_info['delivery_tag']);
+        } else {
+            //将消息返回到队列
+            $objRep->delivery_info['channel']->basic_nack($objMessage->delivery_info['delivery_tag'], false, true);
         }
     }
 
