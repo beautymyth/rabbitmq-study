@@ -1,4 +1,5 @@
 <?php
+
 namespace Lib\PhpAmqpLib\Wire\IO;
 
 use Lib\PhpAmqpLib\Exception\AMQPIOException;
@@ -7,8 +8,8 @@ use Lib\PhpAmqpLib\Exception\AMQPTimeoutException;
 use Lib\PhpAmqpLib\Helper\MiscHelper;
 use Lib\PhpAmqpLib\Wire\AMQPWriter;
 
-class StreamIO extends AbstractIO
-{
+class StreamIO extends AbstractIO {
+
     const READ_BUFFER_WAIT_INTERVAL = 100000;
 
     /** @var string */
@@ -63,13 +64,7 @@ class StreamIO extends AbstractIO
      * @param int $heartbeat
      */
     public function __construct(
-        $host,
-        $port,
-        $connection_timeout,
-        $read_write_timeout,
-        $context = null,
-        $keepalive = false,
-        $heartbeat = 0
+    $host, $port, $connection_timeout, $read_write_timeout, $context = null, $keepalive = false, $heartbeat = 0
     ) {
         if ($heartbeat !== 0 && ($read_write_timeout < ($heartbeat * 2))) {
             throw new \InvalidArgumentException('read_write_timeout must be at least 2x the heartbeat');
@@ -105,11 +100,8 @@ class StreamIO extends AbstractIO
     /**
      * @return bool
      */
-    private function isPcntlSignalEnabled()
-    {
-        return extension_loaded('pcntl')
-            && function_exists('pcntl_signal_dispatch')
-            && (defined('AMQP_WITHOUT_SIGNALS') ? !AMQP_WITHOUT_SIGNALS : true);
+    private function isPcntlSignalEnabled() {
+        return extension_loaded('pcntl') && function_exists('pcntl_signal_dispatch') && (defined('AMQP_WITHOUT_SIGNALS') ? !AMQP_WITHOUT_SIGNALS : true);
     }
 
     /**
@@ -118,27 +110,18 @@ class StreamIO extends AbstractIO
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      * @throws \Exception
      */
-    public function connect()
-    {
+    public function connect() {
         $errstr = $errno = null;
 
         $remote = sprintf(
-            '%s://%s:%s',
-            $this->protocol,
-            $this->host,
-            $this->port
+                '%s://%s:%s', $this->protocol, $this->host, $this->port
         );
 
         set_error_handler(array($this, 'error_handler'));
 
         try {
             $this->sock = stream_socket_client(
-                $remote,
-                $errno,
-                $errstr,
-                $this->connection_timeout,
-                STREAM_CLIENT_CONNECT,
-                $this->context
+                    $remote, $errno, $errstr, $this->connection_timeout, STREAM_CLIENT_CONNECT, $this->context
             );
         } catch (\ErrorException $e) {
             restore_error_handler();
@@ -149,21 +132,17 @@ class StreamIO extends AbstractIO
 
         if (false === $this->sock) {
             throw new AMQPRuntimeException(
-                sprintf(
-                    'Error Connecting to server(%s): %s ',
-                    $errno,
-                    $errstr
-                ),
-                $errno
+            sprintf(
+                    'Error Connecting to server(%s): %s ', $errno, $errstr
+            ), $errno
             );
         }
 
         if (false === stream_socket_get_name($this->sock, true)) {
             throw new AMQPRuntimeException(
-                sprintf(
-                    'Connection refused: %s ',
-                    $remote
-                )
+            sprintf(
+                    'Connection refused: %s ', $remote
+            )
             );
         }
 
@@ -191,8 +170,7 @@ class StreamIO extends AbstractIO
     /**
      * Reconnects the socket
      */
-    public function reconnect()
-    {
+    public function reconnect() {
         $this->close();
         $this->connect();
     }
@@ -204,8 +182,7 @@ class StreamIO extends AbstractIO
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      * @return mixed|string
      */
-    public function read($len)
-    {
+    public function read($len) {
         $this->check_heartbeat();
 
         $read = 0;
@@ -243,11 +220,9 @@ class StreamIO extends AbstractIO
 
         if (mb_strlen($data, 'ASCII') !== $len) {
             throw new AMQPRuntimeException(
-                sprintf(
-                    'Error reading data. Received %s instead of expected %s bytes',
-                    mb_strlen($data, 'ASCII'),
-                    $len
-                )
+            sprintf(
+                    'Error reading data. Received %s instead of expected %s bytes', mb_strlen($data, 'ASCII'), $len
+            )
             );
         }
 
@@ -261,8 +236,7 @@ class StreamIO extends AbstractIO
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      * @throws \Lib\PhpAmqpLib\Exception\AMQPTimeoutException
      */
-    public function write($data)
-    {
+    public function write($data) {
         $written = 0;
         $len = mb_strlen($data, 'ASCII');
 
@@ -317,19 +291,18 @@ class StreamIO extends AbstractIO
      * @return null
      * @throws \ErrorException
      */
-    public function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null)
-    {
+    public function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null) {
         $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
 
         // fwrite notice that the stream isn't ready
         if (strstr($errstr, 'Resource temporarily unavailable')) {
-             // it's allowed to retry
+            // it's allowed to retry
             return null;
         }
 
         // stream_select warning that it has been interrupted by a signal
         if (strstr($errstr, 'Interrupted system call')) {
-             // it's allowed while processing signals
+            // it's allowed while processing signals
             return null;
         }
 
@@ -341,8 +314,7 @@ class StreamIO extends AbstractIO
      * Heartbeat logic: check connection health here
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      */
-    public function check_heartbeat()
-    {
+    public function check_heartbeat() {
         // ignore unless heartbeat interval is set
         if ($this->heartbeat !== 0 && $this->last_read && $this->last_write) {
             $t = microtime(true);
@@ -365,8 +337,7 @@ class StreamIO extends AbstractIO
     /**
      * Sends a heartbeat message
      */
-    protected function write_heartbeat()
-    {
+    protected function write_heartbeat() {
         $pkt = new AMQPWriter();
         $pkt->write_octet(8);
         $pkt->write_short(0);
@@ -375,8 +346,7 @@ class StreamIO extends AbstractIO
         $this->write($pkt->getvalue());
     }
 
-    public function close()
-    {
+    public function close() {
         if (is_resource($this->sock)) {
             fclose($this->sock);
         }
@@ -388,16 +358,14 @@ class StreamIO extends AbstractIO
     /**
      * @return resource
      */
-    public function get_socket()
-    {
+    public function get_socket() {
         return $this->sock;
     }
 
     /**
      * @return resource
      */
-    public function getSocket()
-    {
+    public function getSocket() {
         return $this->get_socket();
     }
 
@@ -408,8 +376,7 @@ class StreamIO extends AbstractIO
      * @throws \ErrorException
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      */
-    public function select($sec, $usec)
-    {
+    public function select($sec, $usec) {
         $this->check_heartbeat();
 
         $read = array($this->sock);
@@ -436,8 +403,7 @@ class StreamIO extends AbstractIO
     /**
      * @return mixed
      */
-    protected function timed_out()
-    {
+    protected function timed_out() {
         // get status of socket to determine whether or not it has timed out
         $info = stream_get_meta_data($this->sock);
 
@@ -447,8 +413,7 @@ class StreamIO extends AbstractIO
     /**
      * @throws \Lib\PhpAmqpLib\Exception\AMQPIOException
      */
-    protected function enable_keepalive()
-    {
+    protected function enable_keepalive() {
         if (!function_exists('socket_import_stream')) {
             throw new AMQPIOException('Can not enable keepalive: function socket_import_stream does not exist');
         }
@@ -464,8 +429,7 @@ class StreamIO extends AbstractIO
     /**
      * @return $this
      */
-    public function disableHeartbeat()
-    {
+    public function disableHeartbeat() {
         $this->heartbeat = 0;
 
         return $this;
@@ -474,10 +438,10 @@ class StreamIO extends AbstractIO
     /**
      * @return $this
      */
-    public function reenableHeartbeat()
-    {
+    public function reenableHeartbeat() {
         $this->heartbeat = $this->initial_heartbeat;
 
         return $this;
     }
+
 }

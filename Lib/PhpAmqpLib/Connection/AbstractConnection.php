@@ -192,15 +192,20 @@ class AbstractConnection extends AbstractChannel {
                 $this->setIsConnected(true);
 
                 // Connect the socket
+                //创建socket并连接
                 $this->getIO()->connect();
 
                 $this->channels = array();
+                
                 // The connection object itself is treated as channel 0
+                //定义连接的信道，信道id=0
                 parent::__construct($this, 0);
 
                 $this->input = new AMQPReader(null, $this->getIO());
-
+                
+                //发送协议头
                 $this->write($this->amqp_protocol_header);
+                //等待开始连接
                 $this->wait(array($this->waitHelper->get_wait('connection.start')), false, $this->connection_timeout);
                 $this->x_start_ok(self::$LIBRARY_PROPERTIES, $this->login_method, $this->login_response, $this->locale);
 

@@ -169,6 +169,7 @@ abstract class AbstractChannel {
     }
 
     /**
+     * 回调对应方法
      * @param string $method_sig
      * @param string $args
      * @param AMQPMessage|null $amqpMessage
@@ -176,12 +177,14 @@ abstract class AbstractChannel {
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      */
     public function dispatch($method_sig, $args, $amqpMessage) {
+        //检查方法是否有效
         if (!$this->methodMap->valid_method($method_sig)) {
             throw new AMQPRuntimeException(sprintf(
                     'Unknown AMQP method "%s"', $method_sig
             ));
         }
-
+        
+        //获取方法名，并检查类中是否有此方法
         $amqp_method = $this->methodMap->get_method($method_sig);
         if (!method_exists($this, $amqp_method)) {
             throw new AMQPRuntimeException(sprintf(
@@ -190,7 +193,8 @@ abstract class AbstractChannel {
         }
 
         $this->dispatch_reader->reuse($args);
-
+        
+        //调用方法
         if ($amqpMessage == null) {
             return call_user_func(array($this, $amqp_method), $this->dispatch_reader);
         }
@@ -237,6 +241,7 @@ abstract class AbstractChannel {
     }
 
     /**
+     * 获取消息
      * @return AMQPMessage
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      */
@@ -252,13 +257,15 @@ abstract class AbstractChannel {
 
         //hack to avoid creating new instances of AMQPReader;
         $this->msg_property_reader->reuse(mb_substr($payload, 12, mb_strlen($payload, 'ASCII') - 12, 'ASCII'));
-
+        
+        //创建消息实体
         return $this->createMessage(
                         $this->msg_property_reader, $this->wait_content_reader
         );
     }
 
     /**
+     * 创建AMQPMessage消息实体
      * @param AMQPReader $propertyReader
      * @param AMQPReader $contentReader
      * @return \Lib\PhpAmqpLib\Message\AMQPMessage
@@ -293,9 +300,10 @@ abstract class AbstractChannel {
 
     /**
      * Wait for some expected AMQP methods and dispatch to them.
-     * Unexpected methods are queued up for later calls to this PHP
-     * method.
-     *
+     * Unexpected methods are queued up for later calls to this PHP method.
+     * 等待预期的AMQP方法（wait091->$wait中的可用方法标识）并进行回调。
+     * 未预期到的方法排队等待后续调用。
+     * 
      * @param array $allowed_methods
      * @param bool $non_blocking
      * @param int $timeout
@@ -313,22 +321,29 @@ abstract class AbstractChannel {
 
         // No deferred methods?  wait for new ones
         while (true) {
+            //从socket获取数据
             list($frame_type, $payload) = $this->next_frame($timeout);
-
+            
+            //验证获取的数据
             $this->validate_method_frame($frame_type);
             $this->validate_frame_payload($payload);
-
+            
+            //从socket返回数据中，提取方法标识与其他参数
             $method_sig = $this->build_method_signature($payload);
             $args = $this->extract_args($payload);
 
             $this->debug->debug_method_signature('> %s', $method_sig);
+            //是否还需从socket获取mq消息
             $amqpMessage = $this->maybe_wait_for_content($method_sig);
-
+            
+            //是否可执行回调
             if ($this->should_dispatch_method($allowed_methods, $method_sig)) {
+                //执行回调，并传入参数与消息实体
                 return $this->dispatch($method_sig, $args, $amqpMessage);
             }
 
             // Wasn't what we were looking for? save it for later
+            //方法不匹配，循环等待
             $this->debug->debug_method_signature('Queueing for later: %s', $method_sig);
             $this->method_queue[] = array($method_sig, $args, $amqpMessage);
             if ($non_blocking) {
@@ -420,6 +435,7 @@ abstract class AbstractChannel {
     }
 
     /**
+     * 从socket返回的二进制中，获取方法标识
      * @param string $payload
      * @return string
      */
@@ -430,6 +446,7 @@ abstract class AbstractChannel {
     }
 
     /**
+     * 从socket返回的二进制中，提取其它参数
      * @param string $payload
      * @return string
      */
@@ -449,6 +466,7 @@ abstract class AbstractChannel {
     }
 
     /**
+     * 从服务器获取mq消息
      * @param string $method_sig
      * @return AMQPMessage|null
      */

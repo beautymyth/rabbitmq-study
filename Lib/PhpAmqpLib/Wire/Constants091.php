@@ -8,6 +8,7 @@ class Constants091
 {
     /**
      * @var string
+     * 协议头
      */
     public static $AMQP_PROTOCOL_HEADER = "AMQP\x00\x00\x09\x01";
 
@@ -25,6 +26,7 @@ class Constants091
     );
 
     /**
+     * 需要额外等待消息内容的方法
      * @var array
      */
     public static $CONTENT_METHODS = array(
@@ -35,6 +37,7 @@ class Constants091
     );
 
     /**
+     * 连接或信道关闭的方法
      * @var array
      */
     public static $CLOSE_METHODS = array(
