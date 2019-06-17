@@ -4,8 +4,11 @@
 
 namespace Lib\PhpAmqpLib\Helper\Protocol;
 
-class MethodMap091
-{
+/**
+ * 请求标识对应的回调方法
+ */
+class MethodMap091 {
+
     /**
      * @var array
      */
@@ -77,20 +80,21 @@ class MethodMap091
     );
 
     /**
+     * 根据请求标识获取回调方法
      * @var string $method_sig
      * @return string
      */
-    public function get_method($method_sig)
-    {
+    public function get_method($method_sig) {
         return $this->method_map[$method_sig];
     }
 
     /**
+     * 请求标识是否有效
      * @var string $method_sig
      * @return bool
      */
-    public function valid_method($method_sig)
-    {
+    public function valid_method($method_sig) {
         return array_key_exists($method_sig, $this->method_map);
     }
+
 }

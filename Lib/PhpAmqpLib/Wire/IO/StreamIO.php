@@ -55,6 +55,7 @@ class StreamIO extends AbstractIO {
     private $canDispatchPcntlSignal;
 
     /**
+     * 构造函数，获取创建类需要的参数
      * @param string $host
      * @param int $port
      * @param float $connection_timeout
@@ -106,7 +107,7 @@ class StreamIO extends AbstractIO {
 
     /**
      * Sets up the stream connection
-     *
+     * 建立socket连接
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      * @throws \Exception
      */
@@ -117,9 +118,11 @@ class StreamIO extends AbstractIO {
                 '%s://%s:%s', $this->protocol, $this->host, $this->port
         );
 
+        //设置局部错误捕捉函数，用于获取错误信息
         set_error_handler(array($this, 'error_handler'));
 
         try {
+            //1.创建socket
             $this->sock = stream_socket_client(
                     $remote, $errno, $errstr, $this->connection_timeout, STREAM_CLIENT_CONNECT, $this->context
             );
@@ -128,6 +131,7 @@ class StreamIO extends AbstractIO {
             throw $e;
         }
 
+        //恢复原来的错误捕捉函数
         restore_error_handler();
 
         if (false === $this->sock) {
@@ -146,6 +150,7 @@ class StreamIO extends AbstractIO {
             );
         }
 
+        //2.设置写读的超时时间
         list($sec, $uSec) = MiscHelper::splitSecondsMicroseconds($this->read_write_timeout);
         if (!stream_set_timeout($this->sock, $sec, $uSec)) {
             throw new AMQPIOException('Timeout could not be set');
@@ -168,7 +173,7 @@ class StreamIO extends AbstractIO {
     }
 
     /**
-     * Reconnects the socket
+     * 重新连接
      */
     public function reconnect() {
         $this->close();
@@ -176,18 +181,21 @@ class StreamIO extends AbstractIO {
     }
 
     /**
-     * @param int $len
+     * 从socket中读取数据
+     * @param int $len 需要读取的数据长度
      * @throws \ErrorException
      * @throws \Lib\PhpAmqpLib\Exception\AMQPIOException
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      * @return mixed|string
      */
     public function read($len) {
+        //1.检查心跳
         $this->check_heartbeat();
 
         $read = 0;
         $data = '';
 
+        //2.循环读取数据
         while ($read < $len) {
             if (!is_resource($this->sock) || feof($this->sock)) {
                 throw new AMQPRuntimeException('Broken pipe or closed connection');
@@ -218,6 +226,7 @@ class StreamIO extends AbstractIO {
             $data .= $buffer;
         }
 
+        //3.判断数据读取是否正确
         if (mb_strlen($data, 'ASCII') !== $len) {
             throw new AMQPRuntimeException(
             sprintf(
@@ -226,12 +235,14 @@ class StreamIO extends AbstractIO {
             );
         }
 
+        //4.更新最近读取时间
         $this->last_read = microtime(true);
         return $data;
     }
 
     /**
-     * @param string $data
+     * 向socket写入数据
+     * @param string $data 需要写入的数据
      * @return mixed|void
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      * @throws \Lib\PhpAmqpLib\Exception\AMQPTimeoutException
@@ -241,7 +252,7 @@ class StreamIO extends AbstractIO {
         $len = mb_strlen($data, 'ASCII');
 
         while ($written < $len) {
-
+            //1.检查socket连接是否有效
             if (!is_resource($this->sock)) {
                 throw new AMQPRuntimeException('Broken pipe or closed connection');
             }
@@ -255,6 +266,7 @@ class StreamIO extends AbstractIO {
             // September 2002:
             // http://comments.gmane.org/gmane.comp.encryption.openssl.user/4361
             try {
+                //2.写入数据
                 $buffer = fwrite($this->sock, mb_substr($data, $written, 8192, 'ASCII'), 8192);
             } catch (\ErrorException $e) {
                 restore_error_handler();
@@ -274,15 +286,17 @@ class StreamIO extends AbstractIO {
                 throw new AMQPTimeoutException('Error sending data. Socket connection timed out');
             }
 
+            //3.更新已写入的数据长度
             $written += $buffer;
         }
-
+        
+        //4.更新最近写入时间
         $this->last_write = microtime(true);
     }
 
     /**
      * Internal error handler to deal with stream and socket errors that need to be ignored
-     *
+     * 内部错误处理程序，忽略一些stream和socket错误
      * @param  int $errno
      * @param  string $errstr
      * @param  string $errfile
@@ -312,6 +326,7 @@ class StreamIO extends AbstractIO {
 
     /**
      * Heartbeat logic: check connection health here
+     * 检查连接是否正常
      * @throws \Lib\PhpAmqpLib\Exception\AMQPRuntimeException
      */
     public function check_heartbeat() {
@@ -322,12 +337,14 @@ class StreamIO extends AbstractIO {
             $t_write = round($t - $this->last_write);
 
             // server has gone away
+            //读取间隔超过2倍心跳时间，连接失效
             if (($this->heartbeat * 2) < $t_read) {
                 $this->close();
                 throw new AMQPRuntimeException("Missed server heartbeat");
             }
 
             // time for client to send a heartbeat
+            //写入间隔超过心跳时间一半，发送心跳帧
             if (($this->heartbeat / 2) < $t_write) {
                 $this->write_heartbeat();
             }
@@ -336,6 +353,7 @@ class StreamIO extends AbstractIO {
 
     /**
      * Sends a heartbeat message
+     * 发送心跳帧
      */
     protected function write_heartbeat() {
         $pkt = new AMQPWriter();
@@ -346,6 +364,9 @@ class StreamIO extends AbstractIO {
         $this->write($pkt->getvalue());
     }
 
+    /**
+     * 关闭socket连接
+     */
     public function close() {
         if (is_resource($this->sock)) {
             fclose($this->sock);
@@ -401,6 +422,7 @@ class StreamIO extends AbstractIO {
     }
 
     /**
+     * socket是否超时
      * @return mixed
      */
     protected function timed_out() {

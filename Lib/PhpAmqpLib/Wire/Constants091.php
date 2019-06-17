@@ -4,11 +4,14 @@
 
 namespace Lib\PhpAmqpLib\Wire;
 
-class Constants091
-{
+/**
+ * 091协议的相关常量
+ */
+class Constants091 {
+
     /**
-     * @var string
      * 协议头
+     * @var string
      */
     public static $AMQP_PROTOCOL_HEADER = "AMQP\x00\x00\x09\x01";
 
@@ -46,6 +49,7 @@ class Constants091
     );
 
     /**
+     * 有效的请求标识
      * @var array
      */
     public static $GLOBAL_METHOD_NAMES = array(
@@ -114,4 +118,5 @@ class Constants091
         '85,10' => 'Confirm.select',
         '85,11' => 'Confirm.select_ok',
     );
+
 }

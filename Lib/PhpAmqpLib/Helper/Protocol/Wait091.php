@@ -4,8 +4,11 @@
 
 namespace Lib\PhpAmqpLib\Helper\Protocol;
 
-class Wait091
-{
+/**
+ * wait请求对应的请求标识，用于请求结束后执行对应的回调方法
+ */
+class Wait091 {
+
     /**
      * @var array
      */
@@ -77,11 +80,12 @@ class Wait091
     );
 
     /**
+     * 根据wait请求获取请求标识
      * @var string $method
      * @return string
      */
-    public function get_wait($method)
-    {
+    public function get_wait($method) {
         return $this->wait[$method];
     }
+
 }
