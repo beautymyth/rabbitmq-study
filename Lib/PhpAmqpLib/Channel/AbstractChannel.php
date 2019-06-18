@@ -203,6 +203,7 @@ abstract class AbstractChannel {
     }
 
     /**
+     * 从socket获取数据
      * @param int $timeout
      * @return array|mixed
      */
@@ -328,7 +329,7 @@ abstract class AbstractChannel {
             $this->validate_method_frame($frame_type);
             $this->validate_frame_payload($payload);
             
-            //从socket返回数据中，提取方法标识与其他参数
+            //从socket返回数据中，提取回调方法标识与其他参数
             $method_sig = $this->build_method_signature($payload);
             $args = $this->extract_args($payload);
 
@@ -336,7 +337,7 @@ abstract class AbstractChannel {
             //是否还需从socket获取mq消息
             $amqpMessage = $this->maybe_wait_for_content($method_sig);
             
-            //是否可执行回调
+            //是否需要执行回调
             if ($this->should_dispatch_method($allowed_methods, $method_sig)) {
                 //执行回调，并传入参数与消息实体
                 return $this->dispatch($method_sig, $args, $amqpMessage);
@@ -466,7 +467,7 @@ abstract class AbstractChannel {
     }
 
     /**
-     * 从服务器获取mq消息
+     * 还需从服务器等待获取mq实体消息
      * @param string $method_sig
      * @return AMQPMessage|null
      */
@@ -482,6 +483,7 @@ abstract class AbstractChannel {
     }
 
     /**
+     * 调用回调函数
      * @param callable $handler
      * @param array $arguments
      */

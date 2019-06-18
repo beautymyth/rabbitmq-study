@@ -183,12 +183,15 @@ class AbstractConnection extends AbstractChannel {
 
     /**
      * Connects to the AMQP server
+     * 连接到消息队列服务器
      */
     protected function connect() {
         try {
             // Loop until we connect
+            //循环直到连接上
             while (!$this->isConnected()) {
                 // Assume we will connect, until we dont
+                //假设可以连接成功，除非后面处理时失败了
                 $this->setIsConnected(true);
 
                 // Connect the socket
@@ -196,19 +199,20 @@ class AbstractConnection extends AbstractChannel {
                 $this->getIO()->connect();
 
                 $this->channels = array();
-                
+
                 // The connection object itself is treated as channel 0
                 //定义连接的信道，信道id=0
                 parent::__construct($this, 0);
 
                 $this->input = new AMQPReader(null, $this->getIO());
-                
+
                 //发送协议头
                 $this->write($this->amqp_protocol_header);
                 //等待开始连接
                 $this->wait(array($this->waitHelper->get_wait('connection.start')), false, $this->connection_timeout);
                 $this->x_start_ok(self::$LIBRARY_PROPERTIES, $this->login_method, $this->login_response, $this->locale);
 
+                //等待连接好
                 $this->wait_tune_ok = true;
                 while ($this->wait_tune_ok) {
                     $this->wait(array(
@@ -217,6 +221,7 @@ class AbstractConnection extends AbstractChannel {
                     ));
                 }
 
+                //打开连接
                 $host = $this->x_open($this->vhost, '', $this->insist);
                 if (!$host) {
                     //Reconnected
@@ -226,6 +231,7 @@ class AbstractConnection extends AbstractChannel {
                     return null; // we weren't redirected
                 }
 
+                //未连接成功
                 $this->setIsConnected(false);
                 $this->closeChannels();
 
@@ -376,7 +382,7 @@ class AbstractConnection extends AbstractChannel {
      * @return AMQPWriter
      */
     public function prepare_content($channel, $class_id, $weight, $body_size, $packed_properties, $body, $pkt = null) {
-        $pkt = $pkt ? : new AMQPWriter();
+        $pkt = $pkt ?: new AMQPWriter();
 
         // Content already prepared ?
         $key_cache = sprintf(
@@ -452,7 +458,7 @@ class AbstractConnection extends AbstractChannel {
             $args = $args->getvalue();
         }
 
-        $pkt = $pkt ? : new AMQPWriter();
+        $pkt = $pkt ?: new AMQPWriter();
 
         $pkt->write_octet(1);
         $pkt->write_short($channel);
@@ -472,7 +478,7 @@ class AbstractConnection extends AbstractChannel {
 
     /**
      * Waits for a frame from the server
-     *
+     * 等待从服务器返回的信息
      * @param int $timeout
      * @return array
      * @throws \Exception
@@ -492,7 +498,7 @@ class AbstractConnection extends AbstractChannel {
             $this->wait_frame_reader->reuse(
                     $this->input->read(AMQPReader::OCTET + AMQPReader::SHORT + AMQPReader::LONG)
             );
-            
+
             $frame_type = $this->wait_frame_reader->read_octet();
             $class = self::$PROTOCOL_CONSTANTS_CLASS;
             if (!array_key_exists($frame_type, $class::$FRAME_TYPES)) {
@@ -500,9 +506,10 @@ class AbstractConnection extends AbstractChannel {
             }
             $channel = $this->wait_frame_reader->read_short();
             $size = $this->wait_frame_reader->read_long();
-            
+
             // payload + ch
             $this->wait_frame_reader->reuse($this->input->read(AMQPReader::OCTET + (int) $size));
+            //通过socket读取
             $payload = $this->wait_frame_reader->read($size);
             $ch = $this->wait_frame_reader->read_octet();
         } catch (AMQPTimeoutException $e) {
@@ -523,7 +530,7 @@ class AbstractConnection extends AbstractChannel {
 
     /**
      * Waits for a frame from the server destined for a particular channel.
-     *
+     * 等待从服务器返回的给指定channel的信息
      * @param string $channel_id
      * @param int $timeout
      * @return array
@@ -534,6 +541,7 @@ class AbstractConnection extends AbstractChannel {
         while (true) {
             $now = time();
             try {
+                //1.等待返回信息
                 list($frame_type, $frame_channel, $payload) = $this->wait_frame($_timeout);
             } catch (AMQPTimeoutException $e) {
                 if ($this->heartbeat && microtime(true) - ($this->heartbeat * 2) > $this->last_frame) {
@@ -559,7 +567,7 @@ class AbstractConnection extends AbstractChannel {
                 }
                 continue;
             } else {
-
+                //2.如果返回的信息为指定channel的
                 if ($frame_channel == $channel_id) {
                     return array($frame_type, $payload);
                 }
@@ -667,6 +675,7 @@ class AbstractConnection extends AbstractChannel {
     }
 
     /**
+     * 打开连接
      * @param string $virtual_host
      * @param string $capabilities
      * @param bool $insist
@@ -692,7 +701,7 @@ class AbstractConnection extends AbstractChannel {
 
     /**
      * Signals that the connection is ready
-     *
+     * 标记连接已就绪
      * @param AMQPReader $args
      */
     protected function connection_open_ok($args) {
